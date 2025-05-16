@@ -43,7 +43,7 @@ pub(crate) const BITS: usize = core::mem::size_of::<Block>() * 8;
 #[cfg(feature = "serde")]
 pub(crate) const BYTES: usize = core::mem::size_of::<Block>();
 
-use block::Block as SimdBlock;
+pub use block::Block as SimdBlock;
 pub type Block = usize;
 
 #[inline]
@@ -99,6 +99,15 @@ impl FixedBitSet {
         let (mut blocks, rem) = div_rem(bits, SimdBlock::BITS);
         blocks += (rem > 0) as usize;
         Self::from_blocks_and_len(vec![SimdBlock::NONE; blocks], bits)
+    }
+
+    /// CS 6120
+    pub unsafe fn stupid(capacity: usize, arena_pointer: NonNull<MaybeUninit<SimdBlock>>) -> Self {
+        Self {
+            data: arena_pointer,
+            capacity: capacity,
+            length: capacity,
+        }
     }
 
     #[inline]
@@ -1050,11 +1059,11 @@ impl Default for FixedBitSet {
 
 impl Drop for FixedBitSet {
     fn drop(&mut self) {
-        // SAFETY: The data pointer and capacity were created from a Vec initially. The block
-        // len is identical to that of the original.
-        drop(unsafe {
-            Vec::from_raw_parts(self.data.as_ptr(), self.simd_block_len(), self.capacity)
-        });
+        // // SAFETY: The data pointer and capacity were created from a Vec initially. The block
+        // // len is identical to that of the original.
+        // drop(unsafe {
+        //     Vec::from_raw_parts(self.data.as_ptr(), self.simd_block_len(), self.capacity)
+        // });
     }
 }
 
